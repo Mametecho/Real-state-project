@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { Min } from "./../node_modules/mongoose/types/expressions.d";
 
 const userSchema = new mongoose.Schema(
   {
