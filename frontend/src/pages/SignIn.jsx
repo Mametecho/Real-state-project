@@ -1,20 +1,47 @@
 import { Link } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
+import { useState } from "react";
 
 const SignIn = () => {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value,
+    });
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch("/api/auth/sign-in", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+    if (!res.ok) {
+      throw new Error("Request failed");
+    }
+    const data = await res.json();
+    console.log(data);
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
         <h1 className="text-3xl font-bold text-center text-slate-800 mb-6">
-          Welcome Back
+          Sign In
         </h1>
 
-        <form className="flex flex-col gap-4">
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <input
             type="email"
             placeholder="Email"
             id="email"
             className="border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800"
+            onChange={handleChange}
           />
 
           <input
@@ -22,6 +49,7 @@ const SignIn = () => {
             placeholder="Password"
             id="password"
             className="border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800"
+            onChange={handleChange}
           />
 
           <button
