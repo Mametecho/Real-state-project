@@ -1,0 +1,29 @@
+import mongoose from "mongoose";
+import { Min } from "./../node_modules/mongoose/types/expressions.d";
+
+const userSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: [true, "Username is required"],
+      unique: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      MinLength: [6, "Password must be at least 6 characters long"],
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const User = mongoose.model("User", userSchema);
+export default User;
