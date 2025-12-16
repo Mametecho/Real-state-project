@@ -1,21 +1,20 @@
 import { Link } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
-import {
-  signInFailure,
-  signInStart,
-  signInSuccess,
-} from "../redux/user/userSlice";
+import { clearError, signInUser } from "../redux/user/userSlice";
 import { useDispatch, useSelector } from "react-redux";
 
 const SignIn = () => {
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.user);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.user);
+
   const handleChange = (e) => {
+    dispatch(clearError());
     setFormData({
       ...formData,
       [e.target.id]: e.target.value,
@@ -23,27 +22,7 @@ const SignIn = () => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    try {
-      dispatch(signInStart());
-
-      const res = await fetch("/api/auth/sign-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
-      }
-
-      dispatch(signInSuccess(data));
-      console.log("Logged in:", data);
-    } catch (err) {
-      dispatch(signInFailure(err.message));
-    }
+    dispatch(signInUser(formData));
   };
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
@@ -70,10 +49,11 @@ const SignIn = () => {
           />
 
           <button
+            disabled={loading}
             type="submit"
             className="bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
