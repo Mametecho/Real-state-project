@@ -2,6 +2,7 @@ import User from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -63,19 +64,26 @@ export const login = async (req, res, next) => {
 };
 
 export const google = async (req, res, next) => {
-  const { name, email } = req.body;
+  const { name, email, avatar } = req.body;
+
   try {
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Generate a random password and hash it
-      const randomPassword = Math.random().toString(36).slice(-8); // random 8 chars
+      const randomPassword = crypto.randomBytes(16).toString("hex");
       const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      const username =
+        name.replace(/\s+/g, "").toLowerCase() +
+        Math.floor(Math.random() * 10000);
+
       user = new User({
-        username: name,
+        username,
         email,
         password: hashedPassword,
+        avatar,
       });
+
       await user.save();
     }
 
@@ -87,14 +95,20 @@ export const google = async (req, res, next) => {
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
       })
       .status(200)
       .json({
         message: "Google sign-in successful",
-        user: { id: user._id, username: user.username, email: user.email },
-        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+        },
       });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };

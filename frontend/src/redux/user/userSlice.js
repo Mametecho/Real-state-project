@@ -71,7 +71,6 @@ export const googleSignIn = createAsyncThunk(
       if (!res.ok) {
         throw new Error(data.message || "Google sign-in failed");
       }
-
       // 3️⃣ Return backend user
       return data;
     } catch (error) {
@@ -105,7 +104,7 @@ const userSlice = createSlice({
       })
       .addCase(signUpUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentUser = action.payload;
+        state.currentUser = action.payload.user;
       })
       .addCase(signUpUser.rejected, (state, action) => {
         state.loading = false;
@@ -118,7 +117,7 @@ const userSlice = createSlice({
       })
       .addCase(signInUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentUser = action.payload;
+        state.currentUser = action.payload.user;
       })
       .addCase(signInUser.rejected, (state, action) => {
         state.loading = false;
@@ -130,7 +129,7 @@ const userSlice = createSlice({
       })
       // ✅ success
       .addCase(googleSignIn.fulfilled, (state, action) => {
-        state.currentUser = action.payload;
+        state.currentUser = action.payload.user;
         state.loading = false;
         state.error = null;
       })
