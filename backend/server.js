@@ -1,12 +1,14 @@
 import express from "express";
 import connectDB from "./config/db.js";
 import authRoute from "./routes/authRoute.js";
+import CORS from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(CORS());
 
 app.use("/api/auth", authRoute);
 

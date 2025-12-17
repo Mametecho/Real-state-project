@@ -1,4 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { app } from "../../../firebase";
 
 /* ===== SIGN UP ===== */
 export const signUpUser = createAsyncThunk(
@@ -38,6 +40,42 @@ export const signInUser = createAsyncThunk(
       return data;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+export const googleSignIn = createAsyncThunk(
+  "user/googleSignIn",
+  async (_, { rejectWithValue }) => {
+    try {
+      // 1️⃣ Firebase Google Auth
+      const provider = new GoogleAuthProvider();
+      const auth = getAuth(app);
+      const result = await signInWithPopup(auth, provider);
+
+      // 2️⃣ Send user to backend
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: result.user.displayName,
+          email: result.user.email,
+          uid: result.user.uid,
+          avatar: result.user.photoURL,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Google sign-in failed");
+      }
+
+      // 3️⃣ Return backend user
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
     }
   }
 );
@@ -83,6 +121,21 @@ const userSlice = createSlice({
         state.currentUser = action.payload;
       })
       .addCase(signInUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(googleSignIn.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      // ✅ success
+      .addCase(googleSignIn.fulfilled, (state, action) => {
+        state.currentUser = action.payload;
+        state.loading = false;
+        state.error = null;
+      })
+      // ❌ failure
+      .addCase(googleSignIn.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

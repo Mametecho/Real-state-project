@@ -3,6 +3,7 @@ import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearError, signUpUser } from "../redux/user/userSlice";
+import OAuth from "../components/OAuth";
 
 const SignUp = () => {
   const dispatch = useDispatch();
@@ -71,17 +72,7 @@ const SignUp = () => {
           <span className="text-sm text-slate-500">OR</span>
           <div className="flex-1 h-px bg-slate-300" />
         </div>
-
-        <button
-          type="button"
-          className="w-full flex items-center justify-center gap-3 border border-slate-300 py-3 rounded-lg hover:bg-slate-100 transition"
-        >
-          <FcGoogle size={20} />
-          <span className="font-medium text-slate-700">
-            Continue with Google
-          </span>
-        </button>
-
+        <OAuth />
         <p className="text-center text-slate-600 mt-6">
           Already have an account?{" "}
           <Link
