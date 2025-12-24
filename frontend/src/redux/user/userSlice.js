@@ -1,86 +1,18 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { app } from "../../../firebase";
+import { createSlice } from "@reduxjs/toolkit";
+import {
+  deleteAccount,
+  googleSignIn,
+  logoutUser,
+  signInUser,
+  signUpUser,
+} from "./userThunk";
+import { sanitizeUserState } from "../../utils/sanitizeUserState.js";
 
-/* ===== SIGN UP ===== */
-export const signUpUser = createAsyncThunk(
-  "user/signUp",
-  async (formData, thunkAPI) => {
-    try {
-      const res = await fetch("/api/auth/sign-up", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return thunkAPI.rejectWithValue(data.message);
-      }
-      return data;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
-    }
-  }
-);
-
-/* ===== SIGN IN ===== */
-export const signInUser = createAsyncThunk(
-  "user/signIn",
-  async (formData, thunkAPI) => {
-    try {
-      const res = await fetch("/api/auth/sign-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return thunkAPI.rejectWithValue(data.message);
-      }
-      return data;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error.message);
-    }
-  }
-);
-export const googleSignIn = createAsyncThunk(
-  "user/googleSignIn",
-  async (_, { rejectWithValue }) => {
-    try {
-      // 1️⃣ Firebase Google Auth
-      const provider = new GoogleAuthProvider();
-      const auth = getAuth(app);
-      const result = await signInWithPopup(auth, provider);
-
-      // 2️⃣ Send user to backend
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: result.user.displayName,
-          email: result.user.email,
-          uid: result.user.uid,
-          avatar: result.user.photoURL,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Google sign-in failed");
-      }
-      // 3️⃣ Return backend user
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+const savedUserState = sanitizeUserState();
 
 const initialState = {
-  currentUser: null,
+  currentUser: savedUserState?.currentUser ?? null,
+  token: savedUserState?.token ?? null,
   loading: false,
   error: null,
 };
@@ -91,55 +23,130 @@ const userSlice = createSlice({
   reducers: {
     signOut: (state) => {
       state.currentUser = null;
+      state.token = null;
+      state.error = null;
+      state.loading = false;
+      localStorage.removeItem("userState");
     },
     clearError: (state) => {
+      state.error = null;
+    },
+    updateUserSuccess: (state, action) => {
+      state.currentUser = action.payload;
+      state.loading = false;
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
+      /* ===== SIGN UP ===== */
       .addCase(signUpUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(signUpUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentUser = action.payload.user;
+        // Check if the user object exists in payload to prevent setting null
+        if (action.payload && action.payload.user) {
+          state.currentUser = action.payload.user;
+          state.token = action.payload.token ?? null;
+          state.error = null;
+          localStorage.setItem(
+            "userState",
+            JSON.stringify({
+              currentUser: state.currentUser,
+              token: state.token,
+            })
+          );
+        }
       })
       .addCase(signUpUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
 
+      /* ===== SIGN IN ===== */
       .addCase(signInUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(signInUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentUser = action.payload.user;
+        if (action.payload && action.payload.user) {
+          state.currentUser = action.payload.user;
+          state.token = action.payload.token ?? null;
+          state.error = null;
+          localStorage.setItem(
+            "userState",
+            JSON.stringify({
+              currentUser: state.currentUser,
+              token: state.token,
+            })
+          );
+        }
       })
       .addCase(signInUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
+
+      /* ===== GOOGLE SIGN-IN ===== */
       .addCase(googleSignIn.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      // ✅ success
       .addCase(googleSignIn.fulfilled, (state, action) => {
-        state.currentUser = action.payload.user;
+        state.loading = false;
+        if (action.payload && action.payload.user) {
+          state.currentUser = action.payload.user;
+          state.token = action.payload.token ?? null;
+          state.error = null;
+          localStorage.setItem(
+            "userState",
+            JSON.stringify({
+              currentUser: state.currentUser,
+              token: state.token,
+            })
+          );
+        }
+      })
+      .addCase(googleSignIn.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      /* ===== LOGOUT ===== */
+      .addCase(logoutUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.currentUser = null;
+        state.token = null;
         state.loading = false;
         state.error = null;
+        localStorage.removeItem("userState");
       })
-      // ❌ failure
-      .addCase(googleSignIn.rejected, (state, action) => {
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(deleteAccount.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(deleteAccount.fulfilled, (state) => {
+        state.currentUser = null;
+        state.token = null;
+        state.loading = false;
+        state.error = null;
+        localStorage.removeItem("userState");
+      })
+      .addCase(deleteAccount.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { signOut, clearError } = userSlice.actions;
+export const { signOut, clearError, updateAvatar, updateUserSuccess } =
+  userSlice.actions;
 export default userSlice.reducer;

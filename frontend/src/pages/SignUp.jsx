@@ -2,8 +2,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { clearError, signUpUser } from "../redux/user/userSlice";
 import OAuth from "../components/OAuth";
+import { clearError } from "../redux/user/userSlice";
+import { signUpUser } from "../redux/user/userThunk";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -30,11 +31,19 @@ const SignUp = () => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(signUpUser(formData));
+    try {
+      await dispatch(signUpUser(formData)).unwrap();
+      if (currentUser) {
+        navigate("/");
+      }
+    } catch (error) {
+      console.error(" sign-in failed:", error);
+      navigate("/sign-in");
+    }
   };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 dark:bg-slate-600">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 dark:bg-slate-500 dark:text-white">
         <h1 className="text-3xl font-bold text-center text-slate-800 mb-6">
           Create Account
         </h1>
@@ -67,7 +76,7 @@ const SignUp = () => {
           <button
             disabled={loading}
             type="submit"
-            className="bg-slate-900 text-white py-3 rounded-lg font-semibold hover:bg-slate-800 transition"
+            className="bg-slate-900 text-white py-3 rounded-2xl font-semibold hover:bg-slate-800 transition"
           >
             {loading ? "Signing up..." : "Sign Up"}
           </button>
@@ -75,11 +84,11 @@ const SignUp = () => {
 
         <div className="flex items-center gap-2 my-6">
           <div className="flex-1 h-px bg-slate-300" />
-          <span className="text-sm text-slate-500">OR</span>
+          <span className="text-sm text-slate-500 dark:text-white">OR</span>
           <div className="flex-1 h-px bg-slate-300" />
         </div>
         <OAuth />
-        <p className="text-center text-slate-600 mt-6">
+        <p className="text-center text-slate-600 mt-6 dark:text-white">
           Already have an account?{" "}
           <Link
             to="/sign-in"
